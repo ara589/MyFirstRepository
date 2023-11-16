@@ -1,0 +1,151 @@
+---
+title: "Alcala_STA445_HW5"
+author: "Angelica Alcala"
+date: "2023-11-09"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+Question Notes:
+Question 1: For the infmort data set, the country names are the rownames() of the data.frame. You will
+need to make a new column within the infmort data.frame for the countries, so that you can use ggrepel
+functions correctly.
+Question 2: Please add to the graph the best fit line, and make the annotated information based on the
+lm fit information (coefficients and R-squared), rather than the random values provided.
+1
+
+# Question 1
+
+```{r, warning = FALSE}
+library(faraway)
+data(infmort)
+library(ggplot2)
+library(ggrepel)
+```
+
+
+## a
+
+The rownames() of the table gives the country names and you should create a new column that contains the country names. *rownames
+
+```{r}
+infmort2 <- infmort %>%
+  mutate(Country = row.names(.)) %>%
+  select('Country', everything()) 
+row.names(infmort2) = NULL
+head(infmort2)
+```
+
+
+## b
+
+Create scatter plots with the log10() transformation inside the aes() command.
+
+
+```{r}
+ggplot(infmort2, aes(x = log10(income), y = log10(mortality))) +
+  geom_point(aes(color = oil)) +
+  facet_wrap(.~ region)
+```
+
+
+## c
+
+Create the scatter plots using the scale_x_log10() and scale_y_log10(). Set the major and minor breaks to be useful and aesthetically pleasing. Comment on which version you find easier to read.
+
+
+To be honest I felt like the log10 function was easier to read, although I can that there are probably instances where the scale_y_log10 function might help visualize data better. For this instance I found log10 easier and allowled for better visualization of the data.
+
+
+```{r}
+ggplot(infmort2, aes(x = income, y = mortality)) +
+  geom_point(aes(color = oil)) +
+  facet_wrap(.~ region) +
+  scale_y_log10(breaks=c(100,200,400,600,800),
+                  minor=c(100,125,150,175,
+                        seq( 1, 100,by=10 )))
+```
+
+## d.
+
+The package ggrepel contains functions geom_text_repel() and geom_label_repel() that mimic the basic geom_text() and geom_label() functions in ggplot2, but work to make sure the labels don’t overlap. Select 10-15 countries to label and do so using the geom_text_repel() function.
+
+```{r}
+samp.infmort <- infmort2 %>%
+  mutate(Country2 = ifelse(str_detect(Country, pattern = 'g'), Country, NA))
+samp.infmort
+```
+
+
+
+```{r}
+ggplot(samp.infmort, aes(x = log10(income), y = log10(mortality))) +
+  geom_point(aes(color = oil)) +
+  facet_wrap(.~ region) +
+  geom_text_repel(aes(label = Country2)) + 
+  labs(x=latex2exp::TeX('$\\log_{10}$(Income)'), y=latex2exp::TeX('$\\log_{10}$(Mortality)'),
+       title = 'Mortality as a Function of Income')
+```
+
+
+# Question 2
+
+```{r}
+datasets::trees
+```
+
+
+## a. 
+
+Create a regression model for y = Volume as a function of x = Height.
+
+```{r}
+reg.model <- lm(Volume ~ Height, data = trees)
+reg.model
+```
+
+
+## b.
+
+Using the summary command, get the y-intercept and slope of the regression line.
+
+```{r}
+summary(reg.model)
+```
+
+
+### The y intercept is - 87.124, the slope is 1.543
+
+
+## c.
+
+Using ggplot2, create a scatter plot of Volume vs Height.
+
+
+## d. 
+
+Create a nice white filled rectangle to add text information to using by adding the following annotation layer.
+
+```{r}
+annotate('rect', xmin=65, xmax=75, ymin=60, ymax=74,
+         fill='white', color='black') #+
+```
+
+
+## e.
+
+Add some annotation text to write the equation of the line $y_i=−8.2+15∗x_i$ in the text area.
+
+See 5.3
+
+## f. 
+Add annotation to add $R^2 = 0.358$
+ 
+
+## g.
+
+Add the regression line in red. The most convenient layer function to uses is geom_abline(). It appears that the annotate doesn’t work with geom_abline() so you’ll have to call it directly.

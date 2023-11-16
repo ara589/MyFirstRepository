@@ -1,0 +1,432 @@
+---
+title: "Alcala_STA445_HW4"
+author: "Angelica Alcala"
+date: "2023-10-26"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+```
+
+### Question 1
+
+## a.
+
+```{r}
+Survey <- read.csv('https://www.lock5stat.com/datasets3e/StudentSurvey.csv', 
+                   na.strings=c('',' '))
+Coll.stats <- Survey %>%
+  arrange(Year)
+
+head(Coll.stats)
+```
+
+
+## b.
+
+Using some combination of dplyr functions, produce a data set with eight rows that contains the number of responses for each gender:year combination. Make sure your table orders the Year variable in the correct order of First Year, Sophmore, Junior, and then Senior. 
+
+```{r}
+Comb.stats <- Coll.stats %>%
+  count(Year, Sex, name = "Responses") %>%
+  mutate(Year = factor(Year, levels = c("FirstYear","Sophomore", "Junior", "Senior"))) %>%
+  drop_na()
+Comb.stats
+```
+
+
+## c.
+
+```{r}
+Pivot.stats <- Comb.stats %>%
+  pivot_wider(Sex, names_from = 'Year', 
+             values_from = 'Responses')
+Pivot.stats
+```
+
+
+### Question 2
+
+```{r}
+Flagtemp <- read.csv('https://raw.githubusercontent.com/dereksonderegger/444/master/data-raw/FlagMaxTemp.csv', 
+                     na.strings = c('NA',' '))
+head(Flagtemp)
+```
+
+
+
+## a.
+
+Create a line graph that gives the daily maximum temperature for 2005. Make sure the x-axis is a date and covers the whole year.
+
+```{r}
+Flagtemp1 <- Flagtemp %>% 
+  filter(Year == '2005') %>%
+  pivot_longer(X1:X31, names_to = 'Day', values_to = 'Temperature') %>%
+  drop_na()
+head(Flagtemp1)
+```
+
+
+```{r}
+Flagtemp2 <- subset(Flagtemp1, select = -X) 
+head(Flagtemp2)
+```
+
+
+```{r}
+Flagtemp3 <- Flagtemp2 %>%
+  mutate( Day = str_remove_all(Day, "\\D"))
+head(Flagtemp3)
+```
+
+
+
+```{r}
+Flagtemp4 <- Flagtemp3 %>%
+  mutate(Date = make_date(year = Year, month = Month, day = Day))
+Flagtemp5 <- subset(Flagtemp4, select = c('Date', 'Temperature')) %>%
+  drop_na()
+
+Flagtemp5$Temperature <- as.numeric(Flagtemp5$Temperature)
+head(Flagtemp5)
+```
+
+```{r}
+ggplot(data=Flagtemp5, aes(x=Date, y=Temperature) ) +  
+    geom_point(  ) +
+  geom_line()
+  labs(title = 'Daily Maximum Temperature for 2005')
+```
+
+
+## b.
+
+Create a line graph that gives the monthly average maximum temperature for 2013 - 2015.
+
+```{r}
+FlagT <- Flagtemp %>% 
+  filter(Year %in% c('2013','2014','2015')) %>%
+  pivot_longer(X1:X31, names_to = 'Day', values_to = 'Temperature') %>%
+  drop_na()
+head(FlagT)
+```
+
+
+
+```{r}
+FlagTmean <- FlagT %>%
+  group_by(Year, Month) %>%
+  summarise(MonthlyMean = mean(Temperature)) %>%
+  drop_na()
+head(FlagTmean)
+```
+
+```{r}
+FlagTmean2 <- FlagTmean %>%
+  mutate(date = make_date(year = Year, month = Month) )
+head(FlagTmean2)
+```
+
+```{r}
+ggplot(data=FlagTmean2, aes(x=date, y=MonthlyMean) ) +  
+    geom_point(  ) +
+  geom_line() +
+  labs(title = 'Monthly Mean Temperature, 2013 - 2015', 
+       x = 'Date', y = 'Temperature')
+```
+
+
+
+### Question 4
+
+```{r}
+A <- tribble(
+  ~Name, ~Car,
+  'Alice', 'Ford F150',
+  'Bob',   'Tesla Model III',
+  'Charlie', 'VW Bug')
+
+B <- tribble(
+  ~First.Name, ~Pet,
+  'Bob',  'Cat',
+  'Charlie', 'Dog',
+  'Alice', 'Rabbit') %>%
+  arrange(First.Name)
+A
+B
+```
+
+
+## a.
+
+Squish the data frames together to generate a data set with three rows and three columns. Do two ways: first using cbind and then using one of the dplyr join commands.
+
+```{r}
+#B2 <- tibble(Pet = c('Rabbit','Cat','Dog'))
+
+```
+
+
+Using cbind:
+
+
+```{r}
+pet.car <- cbind(A,B$Pet)
+pet.car
+```
+
+
+Using join:
+
+```{r}
+pet.car2 <- full_join(A,B,by = c("Name" = "First.Name"))
+pet.car2
+```
+
+
+## b.
+It turns out that Alice also has a pet guinea pig. Add another row to the B data set. Do this using either the base function rbind, or either of the dplyr functions add_row or bind_rows.
+
+
+```{r}
+B2 <- B %>%
+  add_row(First.Name = 'Alice', Pet = 'Guinea Pig')
+
+B2
+```
+
+
+
+## c.
+Squish the A and B data sets together to generate a data set with four rows and three columns. Do this two ways: first using cbind and then using one of the dplyr join commands. Which was easier to program? Which is more likely to have an error.
+
+
+
+Using cbind
+
+Cbind gets an error because we are joining data frames that have a different number of rows.
+
+
+Using join
+
+```{r}
+pet.car4 <- full_join(A,B2,by = c("Name" = "First.Name"))
+pet.car4
+```
+
+
+I think the join command was much easier, and it has the option for recognizing that the name columns were representing the same thing. cbind is more likely to get an error because it doesn't contain the ignore NA that join does, so if the rows mismatch it will return an error.
+
+
+
+### Question 5
+
+Data table joins are extremely common because effective database design almost always involves having multiple tables for different types of objects. To illustrate both the table joins and the usefulness of multiple tables we will develop a set of data frames that will represent a credit card company’s customer data base. We will have tables for Customers, Retailers, Cards, and Transactions. Below is code that will create and populate these tables.
+
+
+```{r}
+ Customers <- tribble(
+      ~PersonID, ~Name, ~Street, ~City, ~State,
+      1, 'Derek Sonderegger',  '231 River Run', 'Flagstaff', 'AZ',
+      2, 'Aubrey Sonderegger', '231 River Run', 'Flagstaff', 'AZ',
+      3, 'Robert Buscaglia', '754 Forest Heights', 'Flagstaff', 'AZ',
+      4, 'Roy St Laurent', '845 Elk View', 'Flagstaff', 'AZ')
+    
+    Retailers <- tribble(
+      ~RetailID, ~Name, ~Street, ~City, ~State,
+      1, 'Kickstand Kafe', '719 N Humphreys St', 'Flagstaff', 'AZ',
+      2, 'MartAnnes', '112 E Route 66', 'Flagstaff', 'AZ',
+      3, 'REI', '323 S Windsor Ln', 'Flagstaff', 'AZ' )
+    
+    Cards <- tribble(
+      ~CardID, ~PersonID, ~Issue_DateTime, ~Exp_DateTime,
+      '9876768717278723',  1,  '2019-9-20 0:00:00', '2022-9-20 0:00:00',
+      '5628927579821287',  2,  '2019-9-20 0:00:00', '2022-9-20 0:00:00',
+      '7295825498122734',  3,  '2019-9-28 0:00:00', '2022-9-28 0:00:00',
+      '8723768965231926',  4,  '2019-9-30 0:00:00', '2022-9-30 0:00:00' ) 
+    
+    Transactions <- tribble(
+      ~CardID, ~RetailID, ~DateTime, ~Amount,
+      '9876768717278723', 1, '2019-10-1 8:31:23',    5.68,
+      '7295825498122734', 2, '2019-10-1 12:45:45',  25.67,
+      '9876768717278723', 1, '2019-10-2 8:26:31',    5.68,
+      '9876768717278723', 1, '2019-10-2 8:30:09',    9.23,
+      '5628927579821287', 3, '2019-10-5 18:58:57',  68.54,
+      '7295825498122734', 2, '2019-10-5 12:39:26',  31.84,
+      '8723768965231926', 2, '2019-10-10 19:02:20', 42.83) 
+    
+    Cards <- Cards %>% 
+      mutate( Issue_DateTime = lubridate::ymd_hms(Issue_DateTime),
+              Exp_DateTime   = lubridate::ymd_hms(Exp_DateTime) )
+    Transactions <- Transactions %>% 
+      mutate( DateTime = lubridate::ymd_hms(DateTime))
+```
+
+
+## a. 
+
+Create a table that gives the credit card statement for Derek. It should give all the transactions, the amounts, and the store name. Write your code as if the only initial information you have is the customer’s name.
+
+```{r}
+cust2 <- Customers %>%
+  filter(Name == 'Derek Sonderegger')
+cust2
+```
+
+
+```{r}
+Cards2 <- Cards %>%
+  filter(PersonID == '1')
+Cards2
+```
+
+```{r}
+Trans2 <- Transactions %>%
+  filter(CardID == '9876768717278723')
+Trans2
+```
+
+
+```{r}
+card.data <- full_join(cust2, Cards2)
+card.data2 <- subset(card.data, select = - PersonID) 
+card.data2
+```
+
+
+
+
+
+
+```{r}
+card.data3 <- full_join(Trans2, Retailers) %>%
+  drop_na() %>%
+  rename(Retailer = Name) %>%
+  rename(Address = Street) %>%
+  rename(RetCity = City) %>%
+  rename(RetState = State)
+
+card.data4 <- subset(card.data3, select = - RetailID)
+card.data4
+```
+
+
+```{r}
+card.data5 <- full_join(card.data2,card.data4)
+card.data5
+```
+
+
+
+## b. 
+
+Aubrey has lost her credit card on Oct 15, 2019. Close her credit card at 4:28:21 PM and issue her a new credit card in the Cards table.
+
+```{r}
+aubexp <- make_datetime(year = 2019, month = 10, day = 15, 
+                        hour = 16, min = 28, sec = 21)
+aubexp
+```
+
+
+```{r}
+aubexp2 <- Cards %>%
+  filter(PersonID == 2) %>%
+  mutate(Exp_DateTime = aubexp)
+aubexp2
+```
+
+
+```{r}
+aubnew <- aubexp2 %>%
+  mutate(Issue_DateTime = aubexp, 
+         Exp_DateTime = Issue_DateTime + years(6),
+         CardID = '5628927533618892',
+         PersonID = 2)
+ 
+aubnew
+```
+
+```{r}
+Cards3 <- full_join(Cards,aubnew)
+Cards3
+```
+
+
+## c.
+
+Aubrey is using her new card at Kickstand Kafe on Oct 16, 2019 at 2:30:21 PM for coffee with a charge of $4.98. Generate a new transaction for this action.
+
+
+```{r}
+Aubtrans <- tribble(
+      ~CardID, ~RetailID, ~DateTime, ~Amount,
+      '5628927533618892', 1, '2019-10-16 14:30:21',  4.98)
+Aubtrans <- Aubtrans %>%
+  mutate( DateTime = lubridate::ymd_hms(DateTime))
+Aubtrans
+```
+
+```{r}
+NewTrans <- full_join(Transactions,Aubtrans)
+NewTrans
+```
+
+
+## d. 
+
+On Oct 17, 2019, some nefarious person is trying to use her OLD credit card at REI. Make sure your code in part (c) first checks to see if the credit card is active before creating a new transaction. Using the same code, verify that the nefarious transaction at REI is denied. 
+
+
+
+## e.
+
+Generate a table that gives the credit card statement for Aubrey. It should give all the transactions, amounts, and retailer name for both credit cards she had during this period.
+
+
+```{r}
+AubCards <- Customers %>%
+  filter(PersonID == '2')
+AubCards
+```
+
+
+```{r}
+AubCards2 <- Cards %>%
+  filter(PersonID == '2')
+AubCards2
+```
+
+```{r}
+AubCards3 <- full_join(AubCards,AubCards2) %>%
+  subset(select = -PersonID)
+AubCards3
+```
+
+```{r}
+AubCards4 <- NewTrans %>%
+  filter(CardID == c('5628927579821287','5628927533618892'))
+AubCards4
+```
+
+```{r}
+AubCards5 <- full_join(AubCards4, Retailers) %>%
+  drop_na() %>%
+  rename(Retailer = Name) %>%
+  rename(Address = Street) %>%
+  rename(RetCity = City) %>%
+  rename(RetState = State) %>%
+  subset(select = -RetailID)
+AubCards5
+```
+
+```{r}
+AubreySTMT <- full_join(AubCards3,AubCards5)
+AubreySTMT2 <- full_join(aubnew,AubreySTMT)
+AubreySTMT2
+```
+
